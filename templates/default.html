@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise MAS — Fala Gaiotto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        fg: {
+                            900: '#0a0a0f',
+                            800: '#111118',
+                            700: '#1a1a24',
+                            600: '#24243a',
+                            500: '#2e2e48',
+                        },
+                        accent: {
+                            DEFAULT: '#f59e0b',
+                            light: '#fbbf24',
+                            dark: '#d97706',
+                            glow: 'rgba(245,158,11,0.15)',
+                        },
+                        surface: {
+                            DEFAULT: '#16161e',
+                            raised: '#1e1e2a',
+                            overlay: '#252536',
+                        },
+                        muted: '#6b7280',
+                    },
+                    fontFamily: {
+                        display: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Outfit', sans-serif; background: #0a0a0f; color: #e5e7eb; }
+        .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #2e2e48; border-radius: 2px; }
+        .msg-enter { animation: msgSlide 0.3s ease-out; }
+        @keyframes msgSlide { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.3); } 50% { box-shadow: 0 0 20px 4px rgba(245,158,11,0.15); } }
+        .pulse-glow { animation: pulseGlow 2s infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { animation: spin 0.8s linear infinite; }
+        .node-active { background: rgba(245,158,11,0.2); border-color: #f59e0b; }
+        .node-done { background: rgba(16,185,129,0.15); border-color: #10b981; }
+        .prose-response p { margin-bottom: 0.75em; line-height: 1.7; }
+        .prose-response ul, .prose-response ol { margin: 0.5em 0 0.5em 1.5em; }
+        .prose-response code { background: #1e1e2a; padding: 2px 6px; border-radius: 4px; font-size: 0.875em; font-family: 'JetBrains Mono', monospace; }
+        .prose-response pre { background: #1e1e2a; padding: 1em; border-radius: 8px; overflow-x: auto; margin: 0.75em 0; }
+        .prose-response pre code { background: none; padding: 0; }
+    </style>
+</head>
+<body class="min-h-screen bg-fg-900 text-gray-200 antialiased">
+
+    <!-- HEADER -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-fg-900/80 backdrop-blur-xl border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-accent to-accent-dark flex items-center justify-center">
+                    <svg class="w-5 h-5 text-fg-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <div>
+                    <h1 class="text-sm font-bold tracking-wide text-white">ENTERPRISE MAS</h1>
+                    <p class="text-[10px] text-muted tracking-widest uppercase">Multi-Agent System</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="toggleKB()" class="text-xs font-mono text-muted hover:text-accent transition px-3 py-1.5 rounded-md border border-white/5 hover:border-accent/30">
+                    Knowledge Base
+                </button>
+                <a href="https://www.falagaiotto.com.br" target="_blank" class="text-xs font-medium text-accent/80 hover:text-accent transition hidden sm:block">
+                    falagaiotto.com.br
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN LAYOUT -->
+    <div class="pt-16 flex h-screen">
+
+        <!-- SIDEBAR: Pipeline Visualizer -->
+        <aside id="sidebar" class="hidden lg:flex flex-col w-72 border-r border-white/5 bg-surface p-5 gap-4 overflow-y-auto scrollbar-thin">
+            <h2 class="text-xs font-bold text-accent tracking-widest uppercase">Pipeline DAG</h2>
+
+            <div class="space-y-2" id="pipeline-nodes">
+                <div data-node="plan" class="node-item flex items-center gap-3 px-3 py-2.5 rounded-lg border border-white/5 bg-fg-700 transition-all">
+                    <div class="w-2 h-2 rounded-full bg-muted shrink-0" id="dot-plan"></div>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-300">Planning Agent</p>
+                        <p class="text-[10px] text-muted">Decomposição de tarefas</p>
+                    </div>
+                </div>
+                <div class="flex justify-center"><svg class="w-4 h-4 text-white/10" fill="currentColor" viewBox="0 0 20 20"><path d="M10 14l-5-5h10l-5 5z"/></svg></div>
+                <div data-node="search" class="node-item flex items-center gap-3 px-3 py-2.5 rounded-lg border border-white/5 bg-fg-700 transition-all">
+                    <div class="w-2 h-2 rounded-full bg-muted shrink-0" id="dot-search"></div>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-300">Search Agent</p>
+                        <p class="text-[10px] text-muted">Retrieval multi-hop</p>
+                    </div>
+                </div>
+                <div class="flex justify-center"><svg class="w-4 h-4 text-white/10" fill="currentColor" viewBox="0 0 20 20"><path d="M10 14l-5-5h10l-5 5z"/></svg></div>
+                <div data-node="execute" class="node-item flex items-center gap-3 px-3 py-2.5 rounded-lg border border-white/5 bg-fg-700 transition-all">
+                    <div class="w-2 h-2 rounded-full bg-muted shrink-0" id="dot-execute"></div>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-300">Executor Agent</p>
+                        <p class="text-[10px] text-muted">Tool calling & ação</p>
+                    </div>
+                </div>
+                <div class="flex justify-center"><svg class="w-4 h-4 text-white/10" fill="currentColor" viewBox="0 0 20 20"><path d="M10 14l-5-5h10l-5 5z"/></svg></div>
+                <div data-node="respond" class="node-item flex items-center gap-3 px-3 py-2.5 rounded-lg border border-white/5 bg-fg-700 transition-all">
+                    <div class="w-2 h-2 rounded-full bg-muted shrink-0" id="dot-respond"></div>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-300">Responder Agent</p>
+                        <p class="text-[10px] text-muted">Síntese da resposta</p>
+                    </div>
+                </div>
+                <div class="flex justify-center"><svg class="w-4 h-4 text-white/10" fill="currentColor" viewBox="0 0 20 20"><path d="M10 14l-5-5h10l-5 5z"/></svg></div>
+                <div data-node="review" class="node-item flex items-center gap-3 px-3 py-2.5 rounded-lg border border-white/5 bg-fg-700 transition-all">
+                    <div class="w-2 h-2 rounded-full bg-muted shrink-0" id="dot-review"></div>
+                    <div>
+                        <p class="text-xs font-semibold text-gray-300">Review Agent</p>
+                        <p class="text-[10px] text-muted">QA & guardrails</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-white/5">
+                <h3 class="text-[10px] font-bold text-muted tracking-widest uppercase mb-2">Métricas</h3>
+                <div class="space-y-1.5 text-[11px] font-mono text-gray-400">
+                    <div class="flex justify-between"><span>Tempo</span><span id="metric-time" class="text-gray-300">—</span></div>
+                    <div class="flex justify-between"><span>Sub-tasks</span><span id="metric-tasks" class="text-gray-300">—</span></div>
+                    <div class="flex justify-between"><span>Documentos</span><span id="metric-docs" class="text-gray-300">—</span></div>
+                    <div class="flex justify-between"><span>Review</span><span id="metric-review" class="text-gray-300">—</span></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CHAT AREA -->
+        <main class="flex-1 flex flex-col min-w-0">
+            <!-- Messages -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto scrollbar-thin px-4 sm:px-8 py-6 space-y-4">
+                <!-- Welcome -->
+                <div class="max-w-2xl mx-auto text-center py-16 msg-enter">
+                    <div class="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/20 flex items-center justify-center pulse-glow">
+                        <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/></svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white mb-2">Enterprise Multi-Agent System</h2>
+                    <p class="text-sm text-muted max-w-md mx-auto leading-relaxed">
+                        Sistema autônomo com LangGraph que planeja, recupera informação, executa ações e revisa respostas através de agentes especializados.
+                    </p>
+                    <div class="mt-8 flex flex-wrap justify-center gap-2">
+                        <button onclick="setQuery('Analise as tendências de IA para 2025')" class="text-xs px-3 py-1.5 rounded-full border border-white/10 text-gray-400 hover:text-accent hover:border-accent/30 transition">Tendências de IA 2025</button>
+                        <button onclick="setQuery('Explique LangGraph e multi-agent systems')" class="text-xs px-3 py-1.5 rounded-full border border-white/10 text-gray-400 hover:text-accent hover:border-accent/30 transition">LangGraph & MAS</button>
+                        <button onclick="setQuery('Compare RAG vs fine-tuning para enterprise')" class="text-xs px-3 py-1.5 rounded-full border border-white/10 text-gray-400 hover:text-accent hover:border-accent/30 transition">RAG vs Fine-tuning</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input -->
+            <div class="border-t border-white/5 bg-fg-900/50 backdrop-blur px-4 sm:px-8 py-4">
+                <div class="max-w-2xl mx-auto">
+                    <div class="flex gap-3 items-end">
+                        <div class="flex-1 relative">
+                            <textarea
+                                id="query-input"
+                                rows="1"
+                                placeholder="Digite sua consulta..."
+                                class="w-full bg-surface border border-white/5 rounded-xl px-4 py-3 pr-12 text-sm text-gray-200 placeholder:text-muted/50 focus:outline-none focus:border-accent/40 resize-none transition font-display"
+                                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendQuery()}"
+                                oninput="autoResize(this)"
+                            ></textarea>
+                        </div>
+                        <button
+                            id="send-btn"
+                            onclick="sendQuery()"
+                            class="shrink-0 w-11 h-11 rounded-xl bg-accent hover:bg-accent-light text-fg-900 flex items-center justify-center transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-muted/40 mt-2 text-center font-mono">
+                        Plan → Search → Execute → Respond → Review — LangGraph DAG
+                    </p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- KB MODAL -->
+    <div id="kb-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="toggleKB()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-surface rounded-2xl border border-white/5 p-6 shadow-2xl">
+            <h3 class="text-sm font-bold text-white mb-1">Knowledge Base</h3>
+            <p class="text-xs text-muted mb-4">Adicione documentos ao vetor store local (ChromaDB).</p>
+            <textarea
+                id="kb-input"
+                rows="6"
+                placeholder="Cole o texto do documento aqui. Um documento por linha vazia dupla."
+                class="w-full bg-fg-700 border border-white/5 rounded-lg px-4 py-3 text-xs text-gray-300 placeholder:text-muted/40 focus:outline-none focus:border-accent/30 resize-none font-mono"
+            ></textarea>
+            <div class="flex justify-between items-center mt-4">
+                <span id="kb-status" class="text-[10px] text-muted font-mono"></span>
+                <div class="flex gap-2">
+                    <button onclick="toggleKB()" class="text-xs px-4 py-2 rounded-lg border border-white/10 text-gray-400 hover:text-white transition">Fechar</button>
+                    <button onclick="ingestDocs()" class="text-xs px-4 py-2 rounded-lg bg-accent text-fg-900 font-semibold hover:bg-accent-light transition">Ingerir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const chatEl = document.getElementById('chat-messages');
+    const inputEl = document.getElementById('query-input');
+    const sendBtn = document.getElementById('send-btn');
+    let isProcessing = false;
+
+    const NODES = ['plan', 'search', 'execute', 'respond', 'review'];
+
+    function autoResize(el) {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+    }
+
+    function setQuery(text) {
+        inputEl.value = text;
+        inputEl.focus();
+        autoResize(inputEl);
+    }
+
+    function toggleKB() {
+        document.getElementById('kb-modal').classList.toggle('hidden');
+    }
+
+    function resetPipeline() {
+        document.querySelectorAll('.node-item').forEach(n => {
+            n.classList.remove('node-active', 'node-done');
+        });
+        NODES.forEach(id => {
+            const dot = document.getElementById('dot-' + id);
+            if (dot) { dot.className = 'w-2 h-2 rounded-full bg-muted shrink-0'; }
+        });
+    }
+
+    function activateNode(name) {
+        const el = document.querySelector(`[data-node="${name}"]`);
+        const dot = document.getElementById('dot-' + name);
+        if (el) { el.classList.add('node-active'); el.classList.remove('node-done'); }
+        if (dot) { dot.className = 'w-2 h-2 rounded-full bg-accent shrink-0'; }
+    }
+
+    function completeNode(name) {
+        const el = document.querySelector(`[data-node="${name}"]`);
+        const dot = document.getElementById('dot-' + name);
+        if (el) { el.classList.remove('node-active'); el.classList.add('node-done'); }
+        if (dot) { dot.className = 'w-2 h-2 rounded-full bg-emerald-500 shrink-0'; }
+    }
+
+    function addMessage(role, content, extra) {
+        // Remove welcome if present
+        const welcome = chatEl.querySelector('.text-center.py-16');
+        if (welcome) welcome.remove();
+
+        const wrapper = document.createElement('div');
+        wrapper.className = `max-w-2xl mx-auto msg-enter ${role === 'user' ? 'flex justify-end' : ''}`;
+
+        if (role === 'user') {
+            wrapper.innerHTML = `
+                <div class="bg-accent/10 border border-accent/20 rounded-2xl rounded-tr-md px-4 py-3 max-w-[80%]">
+                    <p class="text-sm text-gray-200">${escapeHtml(content)}</p>
+                </div>`;
+        } else if (role === 'loading') {
+            wrapper.id = 'loading-msg';
+            wrapper.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-surface-overlay flex items-center justify-center shrink-0">
+                        <div class="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full spinner"></div>
+                    </div>
+                    <div class="bg-surface-raised border border-white/5 rounded-2xl rounded-tl-md px-4 py-3">
+                        <p class="text-xs text-muted font-mono" id="loading-status">Planejando...</p>
+                    </div>
+                </div>`;
+        } else {
+            wrapper.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center shrink-0 mt-0.5">
+                        <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
+                    <div class="bg-surface-raised border border-white/5 rounded-2xl rounded-tl-md px-5 py-4 max-w-[85%] min-w-0">
+                        <div class="prose-response text-sm text-gray-300 leading-relaxed">${content}</div>
+                        ${extra ? `<div class="mt-3 pt-3 border-t border-white/5 text-[10px] font-mono text-muted/60">${extra}</div>` : ''}
+                    </div>
+                </div>`;
+        }
+
+        chatEl.appendChild(wrapper);
+        chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    function removeLoading() {
+        const el = document.getElementById('loading-msg');
+        if (el) el.remove();
+    }
+
+    function updateLoadingStatus(text) {
+        const el = document.getElementById('loading-status');
+        if (el) el.textContent = text;
+    }
+
+    function escapeHtml(text) {
+        const d = document.createElement('div');
+        d.textContent = text;
+        return d.innerHTML;
+    }
+
+    function updateMetrics(data) {
+        document.getElementById('metric-time').textContent = data.elapsed_ms + 'ms';
+        document.getElementById('metric-tasks').textContent = data.plan ? data.plan.length : '—';
+        document.getElementById('metric-docs').textContent = data.search_queries ? data.search_queries.length + ' queries' : '—';
+        document.getElementById('metric-review').textContent = data.review_passed ? 'Aprovado' : 'Revisado';
+    }
+
+    async function sendQuery() {
+        const query = inputEl.value.trim();
+        if (!query || isProcessing) return;
+
+        isProcessing = true;
+        sendBtn.disabled = true;
+        inputEl.value = '';
+        inputEl.style.height = 'auto';
+
+        addMessage('user', query);
+        addMessage('loading');
+        resetPipeline();
+
+        // Simulate pipeline progression
+        const steps = [
+            { node: 'plan', label: 'Planejando sub-tarefas...', delay: 400 },
+            { node: 'search', label: 'Recuperando informações...', delay: 800 },
+            { node: 'execute', label: 'Executando ações...', delay: 600 },
+            { node: 'respond', label: 'Gerando resposta...', delay: 500 },
+            { node: 'review', label: 'Revisando qualidade...', delay: 400 },
+        ];
+
+        let stepIdx = 0;
+        const progressInterval = setInterval(() => {
+            if (stepIdx < steps.length) {
+                if (stepIdx > 0) completeNode(steps[stepIdx - 1].node);
+                activateNode(steps[stepIdx].node);
+                updateLoadingStatus(steps[stepIdx].label);
+                stepIdx++;
+            }
+        }, 1800);
+
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query }),
+            });
+
+            clearInterval(progressInterval);
+            NODES.forEach(n => completeNode(n));
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ detail: 'Erro desconhecido' }));
+                removeLoading();
+                addMessage('assistant', `<p class="text-red-400">Erro: ${escapeHtml(err.detail || res.statusText)}</p>`);
+                return;
+            }
+
+            const data = await res.json();
+            removeLoading();
+
+            const planInfo = data.plan && data.plan.length
+                ? data.plan.map(t => `${t.id}. [${t.status}] ${t.description}`).join(' · ')
+                : '';
+
+            const extra = [
+                `${data.elapsed_ms}ms`,
+                `${data.plan ? data.plan.length : 0} tasks`,
+                data.review_passed ? 'review: ok' : 'review: revised',
+            ].join(' · ');
+
+            // Convert markdown-like formatting
+            let html = data.response
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/`(.*?)`/g, '<code>$1</code>');
+            html = '<p>' + html + '</p>';
+
+            addMessage('assistant', html, extra);
+            updateMetrics(data);
+
+        } catch (err) {
+            clearInterval(progressInterval);
+            removeLoading();
+            addMessage('assistant', `<p class="text-red-400">Erro de conexão: ${escapeHtml(err.message)}</p>`);
+        } finally {
+            isProcessing = false;
+            sendBtn.disabled = false;
+            inputEl.focus();
+        }
+    }
+
+    async function ingestDocs() {
+        const raw = document.getElementById('kb-input').value.trim();
+        if (!raw) return;
+
+        const docs = raw.split(/\n\s*\n/).filter(d => d.trim());
+        const statusEl = document.getElementById('kb-status');
+        statusEl.textContent = 'Ingerindo...';
+
+        try {
+            const res = await fetch('/api/ingest', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ documents: docs }),
+            });
+            const data = await res.json();
+            statusEl.textContent = `${data.ingested} documento(s) adicionado(s).`;
+            document.getElementById('kb-input').value = '';
+        } catch (err) {
+            statusEl.textContent = 'Erro: ' + err.message;
+        }
+    }
+    </script>
+</body>
+</html>
