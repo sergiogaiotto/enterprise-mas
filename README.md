@@ -1,6 +1,6 @@
 # Enterprise MAS — Multi-Agent System com LangGraph
 
-Sistema multi-agente empresarial baseado no artigo *"Understanding LangGraph: Creating Agentic AI Systems for Enterprise Applications"* (Samvardhan Singh, 2025).
+Sistema multi-agente empresarial.
 
 Implementação completa do padrão **Plan → Retrieve → Execute → Review → Respond** usando LangGraph como orquestrador de DAG.
 
@@ -52,7 +52,7 @@ Implementação completa do padrão **Plan → Retrieve → Execute → Review �
 ## Stack
 
 - **Backend**: Python 3.11+, FastAPI, LangGraph, LangChain
-- **LLM**: OpenAI (gpt-4o-mini default, configurável)
+- **LLM**: OpenAI (gpt-4.1-mini default, configurável)
 - **Vector Store**: ChromaDB com OpenAI Embeddings
 - **Web Search**: DuckDuckGo (sem API key)
 - **Frontend**: HTML5 + Tailwind CSS (responsive)
@@ -134,6 +134,3 @@ enterprise-mas/
     └── graph.py               # LangGraph DAG compilation
 ```
 
-## Referência
-
-Singh, S. (2025). *Understanding LangGraph: Creating Agentic AI Systems for Enterprise Applications*. Data Science Collective / Medium.
